@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>母猪监护云平台</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  body {
+    font-family: "Microsoft YaHei", system-ui, sans-serif;
+    background: linear-gradient(160deg, #e8f5e9 0%, #f1f8e9 40%, #e0f2f1 100%);
+    min-height: 100vh; color: #1b5e20;
+  }
+  .wrap { max-width: 480px; margin: 0 auto; padding: 16px 14px 40px; }
+
+  /* ===== 登录页 ===== */
+  .login-box {
+    background: #fff; border-radius: 16px; padding: 28px 22px;
+    margin-top: 18vh; box-shadow: 0 8px 24px rgba(27,94,32,.12);
+  }
+  .login-box h1 { font-size: 22px; text-align:center; color:#2e7d32; margin-bottom: 6px; }
+  .login-box .sub { text-align:center; font-size: 13px; color:#689f38; margin-bottom: 22px; }
+  .login-box input {
+    width: 100%; padding: 12px 14px; margin-bottom: 12px;
+    border: 1px solid #c8e6c9; border-radius: 10px; font-size: 15px;
+    background: #fafffa; outline: none;
+  }
+  .login-box input:focus { border-color: #66bb6a; }
+  .btn-login {
+    width: 100%; padding: 13px; border: none; border-radius: 10px;
+    background: #2e7d32; color: #fff; font-size: 16px; font-weight: bold;
+    cursor: pointer; margin-top: 6px;
+  }
+  .btn-login:active { background: #1b5e20; }
+  .login-err { color: #c62828; font-size: 13px; text-align:center; margin-top: 8px; min-height: 18px; }
+
+  /* ===== 主界面 ===== */
+  .topbar {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 14px;
+  }
+  .topbar .logo { font-size: 19px; font-weight: bold; color: #2e7d32; }
+  .topbar .logo span { font-size: 12px; color:#8bc34a; display:block; }
+  .btn-logout {
+    background: #e8f5e9; border: 1px solid #a5d6a7; color: #2e7d32;
+    padding: 6px 12px; border-radius: 8px; font-size: 13px; cursor: pointer;
+  }
+
+  .status-card {
+    background: #fff; border-radius: 14px; padding: 16px;
+    box-shadow: 0 4px 14px rgba(27,94,32,.08); margin-bottom: 14px;
+  }
+  .status-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+  .status-row:last-child { margin-bottom: 0; }
+  .status-label { font-size: 13px; color: #558b2f; }
+  .status-value { font-size: 16px; font-weight: bold; color: #1b5e20; }
+  .dot { display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:5px; }
+  .dot.on { background:#43a047; }
+  .dot.off { background:#bdbdbd; }
+  .vol-bar {
+    height: 10px; background: #e8f5e9; border-radius: 5px; overflow: hidden; margin-top: 6px;
+  }
+  .vol-bar i { display:block; height:100%; width:0%; background: linear-gradient(90deg,#8bc34a,#43a047); transition: width .3s; }
+  .vol-bar i.hot { background: linear-gradient(90deg,#ffb300,#e53935); }
+
+  .btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+  .btn {
+    border: none; border-radius: 12px; padding: 18px 10px;
+    font-size: 15px; font-weight: bold; cursor: pointer; color: #fff;
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+    box-shadow: 0 4px 10px rgba(0,0,0,.10);
+  }
+  .btn .big { font-size: 26px; }
+  .btn-alarm { background: linear-gradient(135deg,#e53935,#c62828); grid-column: 1 / -1; padding: 22px; }
+  .btn-alarm:active { filter: brightness(.85); }
+  .btn-stop { background: linear-gradient(135deg,#9e9e9e,#757575); }
+  .btn-reset { background: linear-gradient(135deg,#1e88e5,#1565c0); }
+
+  .record-card { background:#fff; border-radius:14px; padding:14px; box-shadow:0 4px 14px rgba(27,94,32,.08); }
+  .record-card h3 { font-size:15px; color:#2e7d32; margin-bottom:10px; }
+  .record-list { max-height: 240px; overflow-y: auto; }
+  .record-item {
+    display:flex; justify-content:space-between; padding:7px 0;
+    border-bottom: 1px dashed #e0e0e0; font-size: 13px;
+  }
+  .record-item:last-child { border-bottom:none; }
+  .record-item .t { color:#757575; }
+  .record-item .e { color:#1b5e20; font-weight: bold; }
+  .record-item .e.warn { color:#c62828; }
+  .record-empty { color:#aaa; font-size:13px; text-align:center; padding:12px 0; }
+  .foot-tip { font-size:12px; color:#8bc34a; text-align:center; margin-top:14px; line-height:1.6; }
+</style>
+</head>
+<body>
+<div class="wrap" id="app">
+
+  <!-- 登录页 -->
+  <div id="loginView" class="login-box" style="display:none;">
+    <h1>🐷 母猪监护云平台</h1>
+    <div class="sub">基于边缘AI的母猪分娩预警与仔猪保育智能监护系统</div>
+    <input id="inUser" type="text" placeholder="用户名" autocomplete="off">
+    <input id="inPass" type="password" placeholder="密码" autocomplete="off">
+    <button class="btn-login" onclick="doLogin()">登 录</button>
+    <div id="loginErr" class="login-err"></div>
+  </div>
+
+  <!-- 主界面 -->
+  <div id="mainView" style="display:none;">
+    <div class="topbar">
+      <div class="logo">🐷 母猪监护云平台
+        <span>边缘AI · 分娩预警 · 仔猪保育</span>
+      </div>
+      <button class="btn-logout" onclick="logout()">退出</button>
+    </div>
+
+    <!-- 状态卡 -->
+    <div class="status-card">
+      <div class="status-row">
+        <span class="status-label">设备状态</span>
+        <span class="status-value" id="stOnline"><span class="dot off"></span>离线</span>
+      </div>
+      <div class="status-row">
+        <span class="status-label">当前音量</span>
+        <span class="status-value" id="stVol">--</span>
+      </div>
+      <div class="vol-bar"><i id="volBar"></i></div>
+      <div class="status-row" style="margin-top:10px;">
+        <span class="status-label">告警状态</span>
+        <span class="status-value" id="stAlarm">--</span>
+      </div>
+      <div class="status-row">
+        <span class="status-label">采集计数</span>
+        <span class="status-value" id="stCnt">--</span>
+      </div>
+      <div class="status-row">
+        <span class="status-label">最近上报</span>
+        <span class="status-value" id="stTime" style="font-size:13px;">--</span>
+      </div>
+    </div>
+
+    <!-- 控制按钮 -->
+    <div class="btn-grid">
+      <button class="btn btn-alarm" onclick="sendCmd('alarm=1')">
+        <span class="big">🚨</span>触发告警（蜂鸣器响2秒）
+      </button>
+      <button class="btn btn-stop" onclick="sendCmd('alarm=0')">
+        <span class="big">🔕</span>停止告警
+      </button>
+      <button class="btn btn-reset" onclick="sendCmd('reset')">
+        <span class="big">🔄</span>复位（回待机）
+      </button>
+    </div>
+
+    <!-- 告警记录 -->
+    <div class="record-card">
+      <h3>📋 告警记录</h3>
+      <div class="record-list" id="recordList"></div>
+    </div>
+
+    <div class="foot-tip">
+      数据每5秒自动刷新 · 指令直达ESP32-S3<br>
+      云端通道：巴法云 MQTT（pigguard主题）
+    </div>
+  </div>
+</div>
+
+<script>
+/* ========== 配置（演示版，正式商用请改用后端保护） ========== */
+var UID  = "dd9ba4db040048e1b7d6782e7063cf5b";   /* 巴法云私钥 */
+var TOPIC = "pigguard";
+var TYPE  = 1;                                     /* MQTT */
+var USER = "admin";                                /* 登录用户名 */
+var PASS = "123456";                               /* 登录密码（演示用，可改） */
+var REFRESH_MS = 5000;
+
+var lastMsg = "";        /* 上次读到的消息（用于判断变化） */
+var lastAlarm = 0;       /* 上次告警状态 */
+
+/* ========== 登录 ========== */
+function doLogin() {
+  var u = document.getElementById("inUser").value.trim();
+  var p = document.getElementById("inPass").value.trim();
+  if (u === USER && p === PASS) {
+    sessionStorage.setItem("pg_login", "1");
+    showMain();
+  } else {
+    document.getElementById("loginErr").textContent = "用户名或密码错误，请重试";
+  }
+}
+function logout() {
+  sessionStorage.removeItem("pg_login");
+  location.reload();
+}
+function showMain() {
+  document.getElementById("loginView").style.display = "none";
+  document.getElementById("mainView").style.display = "block";
+  refresh();
+  setInterval(refresh, REFRESH_MS);
+}
+/* 登录页回车登录 */
+document.addEventListener("keydown", function(e){
+  if (e.key === "Enter") doLogin();
+});
+
+/* ========== 发送指令（远程控制） ========== */
+function sendCmd(cmd) {
+  var url = "https://apis.bemfa.com/va/sendMessage?uid=" + UID +
+            "&topic=" + TOPIC + "&type=" + TYPE + "&msg=" + encodeURIComponent(cmd);
+  fetch(url, {cache:"no-store"})
+    .then(function(r){ return r.json(); })
+    .then(function(j){
+      if (j && j.code === 0) {
+        addRecord(cmd, "指令已发送 ✓");
+      } else {
+        addRecord(cmd, "发送失败(云端返回异常)");
+      }
+    })
+    .catch(function(){
+      addRecord(cmd, "发送失败(网络错误)");
+    });
+}
+
+/* ========== 读取状态（轮询） ========== */
+function refresh() {
+  var url = "https://apis.bemfa.com/va/getmsg?uid=" + UID +
+            "&topic=" + TOPIC + "&type=" + TYPE + "&num=1";
+  fetch(url, {cache:"no-store"})
+    .then(function(r){ return r.json(); })
+    .then(function(j){
+      if (j && j.code === 0 && j.data && j.data.length > 0) {
+        var item = j.data[0];
+        setOnline(true);
+        try {
+          var d = JSON.parse(item.msg);
+          renderStatus(d);
+          if (item.msg !== lastMsg) {
+            lastMsg = item.msg;
+            if (d.alarm === 1 && lastAlarm === 0) addRecord("检测到告警", "告警触发 🚨", true);
+            if (d.alarm === 0 && lastAlarm === 1) addRecord("告警恢复", "恢复正常 ✅");
+            lastAlarm = d.alarm;
+          }
+        } catch(e) {}
+        document.getElementById("stTime").textContent = item.time || "--";
+      } else {
+        setOnline(false);
+      }
+    })
+    .catch(function(){ setOnline(false); });
+}
+function setOnline(ok) {
+  var el = document.getElementById("stOnline");
+  el.innerHTML = ok ? '<span class="dot on"></span>在线' : '<span class="dot off"></span>离线';
+}
+function renderStatus(d) {
+  var vol = d.vol !== undefined ? d.vol : "--";
+  document.getElementById("stVol").textContent = vol;
+  var pct = Math.min(100, Math.round(vol / 20000 * 100));
+  var bar = document.getElementById("volBar");
+  bar.style.width = pct + "%";
+  bar.className = (d.alarm === 1 || vol > 8000) ? "hot" : "";
+  document.getElementById("stAlarm").textContent =
+    d.alarm === 1 ? "🔴 告警中" : (d.alarm === 0 ? "🟢 正常" : "--");
+  document.getElementById("stCnt").textContent = d.cnt !== undefined ? d.cnt : "--";
+}
+
+/* ========== 告警记录（网页本地保存，刷新不丢） ========== */
+function addRecord(action, result, warn) {
+  var list = getRecords();
+  var now = new Date();
+  var ts = pad(now.getMonth()+1)+"-"+pad(now.getDate())+" "+pad(now.getHours())+":"+pad(now.getMinutes())+":"+pad(now.getSeconds());
+  list.unshift({ time: ts, action: action, result: result, warn: !!warn });
+  if (list.length > 100) list.pop();
+  try { localStorage.setItem("pg_records", JSON.stringify(list)); } catch(e) {}
+  renderRecords();
+}
+function getRecords() {
+  try {
+    var s = localStorage.getItem("pg_records");
+    return s ? JSON.parse(s) : [];
+  } catch(e) { return []; }
+}
+function renderRecords() {
+  var list = getRecords();
+  var box = document.getElementById("recordList");
+  if (!list.length) {
+    box.innerHTML = '<div class="record-empty">暂无记录（打开页面后开始记录）</div>';
+    return;
+  }
+  var html = "";
+  for (var i = 0; i < list.length; i++) {
+    var r = list[i];
+    html += '<div class="record-item">' +
+            '<span class="t">' + r.time + '</span>' +
+            '<span class="e' + (r.warn ? " warn" : "") + '">' + r.action + ' · ' + r.result + '</span>' +
+            '</div>';
+  }
+  box.innerHTML = html;
+}
+function pad(n){ return n < 10 ? "0"+n : ""+n; }
+
+/* ========== 初始化 ========== */
+if (sessionStorage.getItem("pg_login") === "1") {
+  showMain();
+} else {
+  document.getElementById("loginView").style.display = "block";
+}
+renderRecords();
+</script>
+</body>
+</html>
