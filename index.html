@@ -125,6 +125,10 @@
       </div>
       <div class="vol-bar"><i id="volBar"></i></div>
       <div class="status-row" style="margin-top:10px;">
+        <span class="status-label">当前温度</span>
+        <span class="status-value" id="stTemp">--</span>
+      </div>
+      <div class="status-row">
         <span class="status-label">告警状态</span>
         <span class="status-value" id="stAlarm">--</span>
       </div>
@@ -258,6 +262,8 @@ function renderStatus(d) {
   var bar = document.getElementById("volBar");
   bar.style.width = pct + "%";
   bar.className = (d.alarm === 1 || vol > 8000) ? "hot" : "";
+  var temp = (d.temp !== undefined && d.temp !== null) ? d.temp + " ℃" : "--";
+  document.getElementById("stTemp").textContent = temp;
   document.getElementById("stAlarm").textContent =
     d.alarm === 1 ? "🔴 告警中" : (d.alarm === 0 ? "🟢 正常" : "--");
   document.getElementById("stCnt").textContent = d.cnt !== undefined ? d.cnt : "--";
